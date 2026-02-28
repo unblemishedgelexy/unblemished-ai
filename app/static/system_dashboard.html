@@ -1,0 +1,1691 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Humoniod Control Dashboard</title>
+    <style>
+      :root {
+        --bg: #f4f8f6;
+        --panel: #ffffff;
+        --ink: #17322f;
+        --muted: #52736d;
+        --accent: #007f6f;
+        --accent-2: #e38b2f;
+        --ok: #0e9f6e;
+        --warn: #d97706;
+        --bad: #b91c1c;
+        --line: #d8e7e2;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Space Grotesk", "IBM Plex Sans", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 20% 0%, #d7efe8 0%, rgba(215, 239, 232, 0) 40%),
+          radial-gradient(circle at 100% 20%, #ffe9cf 0%, rgba(255, 233, 207, 0) 35%),
+          var(--bg);
+      }
+
+      .shell {
+        max-width: 1240px;
+        margin: 0 auto;
+        padding: 24px 16px 48px;
+      }
+
+      .hero {
+        border: 1px solid var(--line);
+        background: linear-gradient(120deg, #ffffff, #eef7f4);
+        border-radius: 18px;
+        padding: 18px 20px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .title {
+        margin: 0;
+        font-size: 26px;
+        letter-spacing: 0.2px;
+      }
+
+      .subtitle {
+        margin: 6px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: #ffffff;
+        font-size: 13px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 14px;
+        margin-top: 14px;
+      }
+
+      .card {
+        border: 1px solid var(--line);
+        background: var(--panel);
+        border-radius: 16px;
+        padding: 14px;
+      }
+
+      .card h3 {
+        margin: 0 0 10px;
+        font-size: 15px;
+      }
+
+      .card.auth {
+        grid-column: span 12;
+      }
+
+      .card.controls {
+        grid-column: span 12;
+      }
+
+      .card.checkup {
+        grid-column: span 12;
+      }
+
+      .card.analyzer {
+        grid-column: span 12;
+      }
+
+      .card.status {
+        grid-column: span 4;
+      }
+
+      .card.runtime {
+        grid-column: span 4;
+      }
+
+      .card.memory {
+        grid-column: span 4;
+      }
+
+      .card.skills {
+        grid-column: span 8;
+      }
+
+      .card.skill-form {
+        grid-column: span 4;
+      }
+
+      .card.chat {
+        grid-column: span 12;
+      }
+
+      .card.trial {
+        display: none;
+        grid-column: span 12;
+      }
+
+      .card.raw {
+        grid-column: span 12;
+      }
+
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .field {
+        flex: 1 1 210px;
+      }
+
+      label {
+        display: block;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--muted);
+        margin-bottom: 6px;
+      }
+
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #c8ddd7;
+        background: #ffffff;
+        color: var(--ink);
+        font-size: 14px;
+      }
+
+      textarea {
+        min-height: 86px;
+        resize: vertical;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+
+      .btns {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      button {
+        border: none;
+        border-radius: 10px;
+        padding: 10px 14px;
+        font-size: 13px;
+        font-weight: 700;
+        color: #fff;
+        background: var(--accent);
+        cursor: pointer;
+      }
+
+      button.secondary {
+        background: #1f5f5a;
+      }
+
+      button.warn {
+        background: var(--accent-2);
+      }
+
+      button.danger {
+        background: var(--bad);
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .kv {
+        border: 1px dashed #cfe0db;
+        border-radius: 10px;
+        padding: 10px;
+      }
+
+      .kv .k {
+        color: var(--muted);
+        font-size: 12px;
+        margin-bottom: 5px;
+      }
+
+      .kv .v {
+        font-size: 14px;
+        font-weight: 700;
+      }
+
+      .state-ok {
+        color: var(--ok);
+      }
+
+      .state-warn {
+        color: var(--warn);
+      }
+
+      .state-bad {
+        color: var(--bad);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+
+      th,
+      td {
+        border-bottom: 1px solid #e7f0ed;
+        text-align: left;
+        padding: 9px 8px;
+        vertical-align: top;
+      }
+
+      th {
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 12px;
+      }
+
+      .code {
+        white-space: pre-wrap;
+        background: #0f2522;
+        color: #ddf8ef;
+        border-radius: 12px;
+        padding: 12px;
+        min-height: 150px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 12px;
+      }
+
+      .hint {
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .chat-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .chat-line {
+        border: 1px dashed #cfe0db;
+        border-radius: 10px;
+        padding: 8px 10px;
+        margin-bottom: 8px;
+        background: #ffffff;
+      }
+
+      .chat-role {
+        font-size: 12px;
+        color: var(--muted);
+        margin-bottom: 4px;
+      }
+
+      .chat-text {
+        font-size: 13px;
+        white-space: pre-wrap;
+      }
+
+      .trial-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .trial-kpi {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      @media (max-width: 1024px) {
+        .card.analyzer,
+        .card.status,
+        .card.runtime,
+        .card.memory,
+        .card.skills,
+        .card.skill-form,
+        .card.trial {
+          grid-column: span 12;
+        }
+
+        .chat-grid,
+        .trial-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .trial-kpi {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div>
+          <h1 class="title">Humoniod System Control</h1>
+          <p class="subtitle">Runtime, memory, skill registry, and live status control panel</p>
+        </div>
+        <div class="pill">
+          <strong>Target:</strong>
+          <span id="targetLabel">/v1/system</span>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="card auth">
+          <h3>Auth + Target</h3>
+          <div class="row">
+            <div class="field">
+              <label for="baseUrl">Base URL</label>
+              <input id="baseUrl" placeholder="http://127.0.0.1:8000" />
+            </div>
+            <div class="field">
+              <label for="authHeader">Auth Header</label>
+              <input id="authHeader" value="x-api-key" />
+            </div>
+            <div class="field">
+              <label for="authValue">Auth Value</label>
+              <input id="authValue" placeholder="API key or bearer token value" />
+            </div>
+            <div class="field">
+              <label for="userId">Skill User ID</label>
+              <input id="userId" value="dashboard-user" />
+            </div>
+          </div>
+          <p class="hint">JWT mode me header `authorization` aur value `Bearer &lt;token&gt;` use karo.</p>
+        </article>
+
+        <article class="card controls">
+          <h3>Actions</h3>
+          <div class="btns">
+            <button id="btnAll">Refresh All</button>
+            <button class="secondary" id="btnStatus">Status</button>
+            <button class="secondary" id="btnRuntime">Runtime</button>
+            <button class="secondary" id="btnMemory">Memory</button>
+            <button class="secondary" id="btnSkills">Skills</button>
+            <button class="secondary" id="btnAnalyzer">Analyzer</button>
+            <button class="secondary" id="btnCheckup">Checkup</button>
+            <button class="warn" id="btnOneTouch">One-Touch Report</button>
+            <button class="secondary" id="btnCopyReport">Copy Report</button>
+          </div>
+        </article>
+
+        <article class="card checkup">
+          <h3>Checkup</h3>
+          <div class="code" id="checkupPanel"></div>
+        </article>
+
+        <article class="card analyzer">
+          <h3>Realtime Analyzer (Delta Log)</h3>
+          <div class="code" id="analyzerPanel"></div>
+        </article>
+
+        <article class="card status">
+          <h3>Status</h3>
+          <div class="stats" id="statusStats"></div>
+        </article>
+
+        <article class="card runtime">
+          <h3>Runtime</h3>
+          <div class="stats" id="runtimeStats"></div>
+        </article>
+
+        <article class="card memory">
+          <h3>Memory</h3>
+          <div class="stats" id="memoryStats"></div>
+        </article>
+
+        <article class="card skills">
+          <h3>Skill Registry</h3>
+          <div class="row">
+            <div class="field">
+              <label for="includeInactive">Include Inactive</label>
+              <select id="includeInactive">
+                <option value="true">true</option>
+                <option value="false">false</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="skillLimit">Limit</label>
+              <input id="skillLimit" type="number" min="1" max="500" value="100" />
+            </div>
+          </div>
+          <div style="overflow:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Trigger</th>
+                  <th>Tool</th>
+                  <th>Active</th>
+                  <th>Corrections</th>
+                  <th>Delete</th>
+                </tr>
+              </thead>
+              <tbody id="skillTable"></tbody>
+            </table>
+          </div>
+        </article>
+
+        <article class="card skill-form">
+          <h3>Create / Update Skill</h3>
+          <div class="row">
+            <div class="field">
+              <label for="triggerText">Trigger Text</label>
+              <input id="triggerText" placeholder="flash-scan" />
+            </div>
+            <div class="field">
+              <label for="triggerType">Trigger Type</label>
+              <select id="triggerType">
+                <option value="contains">contains</option>
+                <option value="exact">exact</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="toolName">Tool Name</label>
+              <input id="toolName" value="context_digest" />
+            </div>
+            <div class="field">
+              <label for="skillActive">Active</label>
+              <select id="skillActive">
+                <option value="true">true</option>
+                <option value="false">false</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label for="toolArgs">Tool Arguments JSON (optional)</label>
+            <textarea id="toolArgs" placeholder='{"context":"{{context}}"}'></textarea>
+          </div>
+          <div class="btns">
+            <button id="btnSaveSkill">Save Skill</button>
+            <button class="warn" id="btnResetForm" type="button">Reset Form</button>
+          </div>
+          <div class="btns" style="margin-top:8px">
+            <button class="secondary" id="btnTplContext" type="button">Template: Context</button>
+            <button class="secondary" id="btnTplKeywords" type="button">Template: Keywords</button>
+            <button class="secondary" id="btnTplPriority" type="button">Template: Priority</button>
+          </div>
+        </article>
+
+        <article class="card chat">
+          <h3>AI Chat Lab</h3>
+          <p class="hint">Yahin se AI ko test karo. Same user_id use karoge to memory aur learned behavior visible hoga.</p>
+          <div class="chat-grid">
+            <div class="field">
+              <label for="chatInput">Chat Input</label>
+              <textarea id="chatInput" placeholder="please flash-scan this request"></textarea>
+            </div>
+            <div class="field">
+              <label for="chatContext">Chat Context JSON</label>
+              <textarea id="chatContext" placeholder='{"region":"us","team":"platform","priority":"high"}'></textarea>
+            </div>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label for="chatUserId">Chat User ID (optional)</label>
+              <input id="chatUserId" placeholder="blank = Skill User ID use hoga" />
+            </div>
+          </div>
+          <div class="btns">
+            <button id="btnSendChat">Send Chat</button>
+            <button class="secondary" id="btnDummySkill" type="button">Dummy: Skill Trigger</button>
+            <button class="secondary" id="btnDummyMemory" type="button">Dummy: Memory Build</button>
+            <button class="warn" id="btnDummyConversation" type="button">Run Dummy Conversation</button>
+            <button class="danger" id="btnClearChat" type="button">Clear Chat</button>
+          </div>
+          <div class="code" id="chatPanel" style="margin-top:10px; min-height:120px"></div>
+        </article>
+
+        <article class="card trial">
+          <h3>Llama Trial Runner (60 Prompts)</h3>
+          <p class="hint">
+            Dashboard-only structured trial. Start Trial se baseline capture hoga, phir current prompt send karke pass/fail mark karo.
+          </p>
+          <div class="row">
+            <div class="field">
+              <label for="trialUserId">Trial User ID</label>
+              <input id="trialUserId" value="trial-user-001" />
+            </div>
+            <div class="field">
+              <label for="trialFailReason">Fail Reason Code</label>
+              <select id="trialFailReason">
+                <option value="">-- select --</option>
+                <option value="OFF_TOPIC">OFF_TOPIC</option>
+                <option value="GENERIC">GENERIC</option>
+                <option value="FACT_ERROR">FACT_ERROR</option>
+                <option value="IGNORED_CONSTRAINT">IGNORED_CONSTRAINT</option>
+                <option value="LOW_ACTIONABILITY">LOW_ACTIONABILITY</option>
+                <option value="FORMAT_FAIL">FORMAT_FAIL</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="trialCurrentNo">Current Prompt #</label>
+              <input id="trialCurrentNo" value="1" readonly />
+            </div>
+            <div class="field">
+              <label for="trialCurrentBlock">Current Block</label>
+              <input id="trialCurrentBlock" value="A" readonly />
+            </div>
+          </div>
+          <div class="trial-grid">
+            <div class="field">
+              <label for="trialPromptText">Current Prompt</label>
+              <textarea id="trialPromptText" readonly></textarea>
+            </div>
+            <div class="field">
+              <label for="trialNotes">Evaluator Notes</label>
+              <textarea id="trialNotes" placeholder="Optional notes for this prompt"></textarea>
+            </div>
+          </div>
+          <div class="btns" style="margin-top:10px">
+            <button id="btnTrialStart" type="button">Start Trial</button>
+            <button class="secondary" id="btnTrialSend" type="button">Send Current Prompt</button>
+            <button class="secondary" id="btnTrialPass" type="button">Mark Pass</button>
+            <button class="danger" id="btnTrialFail" type="button">Mark Fail</button>
+            <button class="warn" id="btnTrialNext" type="button">Next Prompt</button>
+            <button class="secondary" id="btnTrialEndBaseline" type="button">Capture End Baseline</button>
+            <button class="warn" id="btnTrialReport" type="button">Generate Trial Report</button>
+            <button class="secondary" id="btnTrialSheet" type="button">Export Scoring Sheet</button>
+            <button class="danger" id="btnTrialReset" type="button">Reset Trial</button>
+          </div>
+          <div class="trial-kpi" style="margin-top:10px">
+            <div class="kv">
+              <div class="k">Scored</div>
+              <div class="v" id="trialScored">0/60</div>
+            </div>
+            <div class="kv">
+              <div class="k">Global</div>
+              <div class="v" id="trialGlobalScore">0.0%</div>
+            </div>
+            <div class="kv">
+              <div class="k">B+C Score</div>
+              <div class="v" id="trialTechScore">0/30</div>
+            </div>
+            <div class="kv">
+              <div class="k">Hard Fail Flags</div>
+              <div class="v" id="trialHardFail">none</div>
+            </div>
+          </div>
+          <div class="code" id="trialPanel" style="margin-top:10px; min-height:180px"></div>
+        </article>
+
+        <article class="card raw">
+          <h3>Raw Response</h3>
+          <div class="code" id="rawPanel"></div>
+        </article>
+      </section>
+    </main>
+
+    <script>
+      const el = (id) => document.getElementById(id);
+      const rawPanel = el("rawPanel");
+      const checkupPanel = el("checkupPanel");
+      const analyzerPanel = el("analyzerPanel");
+      const chatPanel = el("chatPanel");
+      const trialPanel = el("trialPanel");
+      const snapshot = {
+        status: null,
+        runtime: null,
+        memory: null,
+        skills: null,
+        analyzer: null,
+        generated_at: "",
+      };
+      const chatHistory = [];
+      const TRIAL_BLOCK_TOTALS = { A: 12, B: 18, C: 12, D: 10, E: 8 };
+      const TRIAL_PROMPTS = [
+        { no: 1, block: "A", text: "bhai hello" },
+        { no: 2, block: "A", text: "kya chal raha hai" },
+        { no: 3, block: "A", text: "aaj ka focus kya hona chahiye agar mere paas 2 ghante hain" },
+        { no: 4, block: "A", text: "mujhe short me bata AI kya hota hai" },
+        { no: 5, block: "A", text: "how to define ai in one line" },
+        { no: 6, block: "A", text: "mujhe demotivation ho raha hai, ek practical step bata" },
+        { no: 7, block: "A", text: "mujhe English improve karni hai, 3 daily tasks do" },
+        { no: 8, block: "A", text: "agar mai daily 1 ghanta du to coding ka roadmap do" },
+        { no: 9, block: "A", text: "mujhe confusion hai backend ya frontend, kaise choose karu" },
+        { no: 10, block: "A", text: "summarize this: i want to build an ai assistant for support teams" },
+        { no: 11, block: "A", text: "explain like i am 12: what is machine learning" },
+        { no: 12, block: "A", text: "mujhe kal ka plan banana hai 5 bullets me" },
+        { no: 13, block: "B", text: "design retry strategy for payment gateway failures" },
+        { no: 14, block: "B", text: "refine retry strategy with exponential backoff and jitter" },
+        { no: 15, block: "B", text: "explain circuit breaker + timeout budget for api gateway" },
+        { no: 16, block: "B", text: "design auth flow for api key + jwt support" },
+        { no: 17, block: "B", text: "suggest db schema for user profile + goals + memories" },
+        { no: 18, block: "B", text: "how to make fastapi routes thin and services modular" },
+        { no: 19, block: "B", text: "propose caching strategy for semantic memory retrieval" },
+        { no: 20, block: "B", text: "how to avoid prompt injection in tool-calling agents" },
+        { no: 21, block: "B", text: "design observability dashboard metrics for this app" },
+        { no: 22, block: "B", text: "how to handle background tasks safely in fastapi" },
+        { no: 23, block: "B", text: "compare sqlite vs postgres for this workload" },
+        { no: 24, block: "B", text: "write test strategy for skill registry" },
+        { no: 25, block: "B", text: "how to reduce fallback rate in orchestrator" },
+        { no: 26, block: "B", text: "design memory dedup for long-term summaries" },
+        { no: 27, block: "B", text: "suggest rate-limiting policy for multi-user chat api" },
+        { no: 28, block: "B", text: "plan migration from heuristic to local llama only" },
+        { no: 29, block: "B", text: "define acceptance criteria for answer quality" },
+        { no: 30, block: "B", text: "design incident response for model backend outage" },
+        { no: 31, block: "C", text: 'why am i getting {"detail":"Not Found"} on root path' },
+        { no: 32, block: "C", text: "skill not triggering for flash-scan, what to check" },
+        { no: 33, block: "C", text: "i set same trigger but tool_usage_count still zero, why" },
+        { no: 34, block: "C", text: "my answers are generic repeated templates, root cause?" },
+        { no: 35, block: "C", text: "analyzer shows backend heuristic but i set local llama, diagnose" },
+        { no: 36, block: "C", text: "memory entries increasing but quality not improving, why" },
+        { no: 37, block: "C", text: "how to verify response_match judge is actually running" },
+        { no: 38, block: "C", text: "app starts but local model not loaded, checklist do" },
+        { no: 39, block: "C", text: "fallback_rate suddenly increased to 0.3, what to investigate" },
+        { no: 40, block: "C", text: "dashboard raw response not updating, possible causes" },
+        { no: 41, block: "C", text: "auth enabled after restart but dashboard requests fail 401, fix steps" },
+        { no: 42, block: "C", text: "app is slow after enabling embeddings, where to profile first" },
+        { no: 43, block: "D", text: "please flash-scan this request" },
+        { no: 44, block: "D", text: "wrong use context digest and return key count only" },
+        { no: 45, block: "D", text: "please flash-scan this request" },
+        { no: 46, block: "D", text: "set priority for database migration blocker" },
+        { no: 47, block: "D", text: "wrong use priority estimator with high priority hint" },
+        { no: 48, block: "D", text: "set priority for database migration blocker" },
+        { no: 49, block: "D", text: "design retry strategy for payment gateway failures" },
+        { no: 50, block: "D", text: "wrong use exponential backoff with jitter and cap retries at 5" },
+        { no: 51, block: "D", text: "design retry strategy for payment gateway failures" },
+        { no: 52, block: "D", text: "summarize what i prefer for retry strategy based on our chat" },
+        { no: 53, block: "E", text: "give me answer fast" },
+        { no: 54, block: "E", text: "do it better" },
+        { no: 55, block: "E", text: "same question again" },
+        { no: 56, block: "E", text: "not that" },
+        { no: 57, block: "E", text: "i meant proper production approach with steps" },
+        { no: 58, block: "E", text: "explain everything about ai in one line" },
+        { no: 59, block: "E", text: "give exact and short answer, no extra words: what is vector db" },
+        { no: 60, block: "E", text: "answer in 3 bullets only: why my skill did not trigger" },
+      ];
+      const trialState = {
+        started: false,
+        started_at: "",
+        completed_at: "",
+        current_no: 1,
+        last_answer_excerpt: "",
+        results: {},
+        baseline_start: null,
+        baseline_end: null,
+      };
+
+      function setRaw(value) {
+        rawPanel.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+      }
+
+      function setCheckup(value) {
+        checkupPanel.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+      }
+
+      function setChat(value) {
+        chatPanel.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+      }
+
+      function setAnalyzer(value) {
+        analyzerPanel.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+      }
+
+      function getBaseUrl() {
+        const candidate = el("baseUrl").value.trim();
+        if (candidate) return candidate.replace(/\/+$/, "");
+        return window.location.origin;
+      }
+
+      function buildHeaders() {
+        const headerName = el("authHeader").value.trim();
+        const headerValue = el("authValue").value.trim();
+        const headers = { "Content-Type": "application/json" };
+        if (headerName && headerValue) headers[headerName] = headerValue;
+        return headers;
+      }
+
+      function getChatUserId() {
+        const chatUserId = el("chatUserId").value.trim();
+        if (chatUserId) return chatUserId;
+        const skillUserId = el("userId").value.trim();
+        if (skillUserId) return skillUserId;
+        return "dashboard-user";
+      }
+
+      function parseChatContext() {
+        const raw = el("chatContext").value.trim();
+        if (!raw) return {};
+        let parsed = null;
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          throw new Error("Chat Context JSON invalid");
+        }
+        if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+          throw new Error("Chat Context must be JSON object");
+        }
+        return parsed;
+      }
+
+      function addChatEntry(role, text, userId) {
+        const payload = String(text || "").trim() || "(empty)";
+        chatHistory.push({
+          role,
+          user_id: userId,
+          text: payload,
+          at: new Date().toISOString(),
+        });
+        if (chatHistory.length > 30) {
+          chatHistory.splice(0, chatHistory.length - 30);
+        }
+        renderChatHistory();
+      }
+
+      function renderChatHistory() {
+        if (!chatHistory.length) {
+          setChat("No chat yet. Use Send Chat or Run Dummy Conversation.");
+          return;
+        }
+        const lines = chatHistory.map((item, index) => {
+          return (
+            `[${index + 1}] ${item.role.toUpperCase()} | user=${item.user_id} | at=${item.at}\n` +
+            `${item.text}`
+          );
+        });
+        setChat(lines.join("\n\n"));
+      }
+
+      function setTrial(value) {
+        trialPanel.textContent = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+      }
+
+      function getTrialPrompt(no = trialState.current_no) {
+        return TRIAL_PROMPTS.find((item) => item.no === no) || null;
+      }
+
+      function trialUserId() {
+        const value = el("trialUserId").value.trim();
+        return value || "trial-user-001";
+      }
+
+      function trialDefaultContext() {
+        return {
+          region: "us",
+          team: "platform",
+          priority: "high",
+          answer_style: "factual",
+          source: "trial-llama-dashboard",
+        };
+      }
+
+      function applyTrialDefaults() {
+        const userId = trialUserId();
+        el("userId").value = userId;
+        el("chatUserId").value = userId;
+        el("chatContext").value = JSON.stringify(trialDefaultContext());
+      }
+
+      function trialResultFor(no) {
+        return trialState.results[String(no)] || null;
+      }
+
+      function setCurrentTrialPrompt(no) {
+        const bounded = Math.min(Math.max(Number(no || 1), 1), TRIAL_PROMPTS.length);
+        trialState.current_no = bounded;
+        const prompt = getTrialPrompt(bounded);
+        if (!prompt) return;
+        const existing = trialResultFor(prompt.no);
+        el("trialCurrentNo").value = String(prompt.no);
+        el("trialCurrentBlock").value = prompt.block;
+        el("trialPromptText").value = prompt.text;
+        el("trialFailReason").value = existing && existing.score === 0 ? existing.reason_code || "" : "";
+        el("trialNotes").value = existing?.notes || "";
+      }
+
+      function trialAnswerExcerpt() {
+        if (trialState.last_answer_excerpt) return trialState.last_answer_excerpt;
+        const latestAi = [...chatHistory].reverse().find((item) => item.role === "ai");
+        if (!latestAi) return "";
+        return String(latestAi.text || "").trim().slice(0, 260);
+      }
+
+      function computeTrialScores() {
+        const entries = Object.values(trialState.results);
+        const scored = entries.length;
+        const passes = entries.filter((item) => item.score === 1).length;
+        const fails = entries.filter((item) => item.score === 0).length;
+        const byBlock = { A: { pass: 0, fail: 0 }, B: { pass: 0, fail: 0 }, C: { pass: 0, fail: 0 }, D: { pass: 0, fail: 0 }, E: { pass: 0, fail: 0 } };
+
+        for (const prompt of TRIAL_PROMPTS) {
+          const result = trialResultFor(prompt.no);
+          if (!result) continue;
+          if (result.score === 1) byBlock[prompt.block].pass += 1;
+          if (result.score === 0) byBlock[prompt.block].fail += 1;
+        }
+
+        const technicalPass = byBlock.B.pass + byBlock.C.pass;
+        const skillPass = byBlock.D.pass;
+        const ambiguityPass = byBlock.E.pass;
+        const globalPercent = scored ? (passes / scored) * 100 : 0;
+
+        const hardFails = [];
+        const runtime = snapshot.runtime || {};
+        const status = snapshot.status || {};
+        if (runtime.model_backend_effective && runtime.model_backend_effective !== "local_llama") {
+          hardFails.push("backend_not_local_llama");
+        }
+        const baselineStartFallback = trialState.baseline_start?.status?.telemetry?.fallback_rate;
+        const currentFallback = status.telemetry?.fallback_rate;
+        if (
+          typeof baselineStartFallback === "number" &&
+          typeof currentFallback === "number" &&
+          (currentFallback - baselineStartFallback) > 0.2
+        ) {
+          hardFails.push("fallback_rate_spike_gt_0_20");
+        }
+        const offTopicGenericCount = entries.filter((item) => item.reason_code === "OFF_TOPIC" || item.reason_code === "GENERIC").length;
+        if (offTopicGenericCount > 6) {
+          hardFails.push("repeated_generic_or_off_topic_gt_6");
+        }
+
+        return {
+          scored,
+          passes,
+          fails,
+          byBlock,
+          technicalPass,
+          skillPass,
+          ambiguityPass,
+          globalPercent,
+          hardFails,
+        };
+      }
+
+      function trialVerdict(scores) {
+        if (scores.hardFails.length) return "FAIL";
+        const passGlobal = scores.passes >= 48;
+        const passTech = scores.technicalPass >= 24;
+        const passSkill = scores.skillPass >= 7;
+        const passAmbiguity = scores.ambiguityPass >= 5;
+        if (passGlobal && passTech && passSkill && passAmbiguity) return "PASS";
+        if (scores.passes >= 42) return "CONDITIONAL PASS";
+        return "FAIL";
+      }
+
+      function renderTrialSummary() {
+        const scores = computeTrialScores();
+        el("trialScored").textContent = `${scores.scored}/60`;
+        el("trialGlobalScore").textContent = `${scores.globalPercent.toFixed(1)}%`;
+        el("trialTechScore").textContent = `${scores.technicalPass}/30`;
+        el("trialHardFail").textContent = scores.hardFails.length ? scores.hardFails.join(", ") : "none";
+
+        const prompt = getTrialPrompt();
+        const current = prompt ? trialResultFor(prompt.no) : null;
+        const lines = [
+          `TrialStarted: ${trialState.started ? "true" : "false"}`,
+          `StartedAt: ${trialState.started_at || "n/a"}`,
+          `CompletedAt: ${trialState.completed_at || "n/a"}`,
+          `CurrentPrompt: ${prompt ? `${prompt.no} (${prompt.block})` : "n/a"}`,
+          `CurrentScored: ${current ? String(current.score) : "not_scored"}`,
+          `PassCount: ${scores.passes}`,
+          `FailCount: ${scores.fails}`,
+          `BlockA: ${scores.byBlock.A.pass}/${TRIAL_BLOCK_TOTALS.A}`,
+          `BlockB: ${scores.byBlock.B.pass}/${TRIAL_BLOCK_TOTALS.B}`,
+          `BlockC: ${scores.byBlock.C.pass}/${TRIAL_BLOCK_TOTALS.C}`,
+          `BlockD: ${scores.byBlock.D.pass}/${TRIAL_BLOCK_TOTALS.D}`,
+          `BlockE: ${scores.byBlock.E.pass}/${TRIAL_BLOCK_TOTALS.E}`,
+          `VerdictNow: ${trialVerdict(scores)}`,
+        ];
+        setTrial(lines.join("\n"));
+      }
+
+      async function captureTrialBaseline(kind) {
+        await loadStatus();
+        await loadRuntime();
+        await loadAnalyzer();
+        const payload = {
+          captured_at: new Date().toISOString(),
+          runtime: snapshot.runtime,
+          status: snapshot.status,
+          analyzer: snapshot.analyzer,
+        };
+        if (kind === "start") {
+          trialState.baseline_start = payload;
+        } else {
+          trialState.baseline_end = payload;
+        }
+        return payload;
+      }
+
+      async function startTrial() {
+        applyTrialDefaults();
+        const baseline = await captureTrialBaseline("start");
+        const runtime = baseline.runtime || {};
+        if (runtime.model_backend_configured !== "local_llama" || runtime.model_backend_effective !== "local_llama") {
+          throw new Error("Trial invalid: backend must be local_llama (configured + effective).");
+        }
+        if (runtime.response_match_model_enabled !== true) {
+          throw new Error("Trial invalid: response_match_model_enabled must be true.");
+        }
+        if (runtime.response_match_mode !== "smart_gate") {
+          throw new Error("Trial invalid: response_match_mode must be smart_gate.");
+        }
+        trialState.started = true;
+        trialState.started_at = new Date().toISOString();
+        trialState.completed_at = "";
+        trialState.results = {};
+        trialState.last_answer_excerpt = "";
+        setCurrentTrialPrompt(1);
+        renderTrialSummary();
+        setRaw({
+          status: "trial_started",
+          user_id: trialUserId(),
+          started_at: trialState.started_at,
+          backend_configured: runtime.model_backend_configured,
+          backend_effective: runtime.model_backend_effective,
+        });
+      }
+
+      async function sendCurrentTrialPrompt() {
+        if (!trialState.started) throw new Error("Start Trial first.");
+        const prompt = getTrialPrompt();
+        if (!prompt) throw new Error("Current trial prompt not found.");
+        const userId = trialUserId();
+        const context = parseChatContext();
+        const data = await sendChatMessage({
+          inputText: prompt.text,
+          context,
+          userId,
+          writeRaw: false,
+        });
+        trialState.last_answer_excerpt = String(data.final_answer || "").trim().slice(0, 280);
+        setRaw({
+          status: "trial_prompt_sent",
+          prompt_no: prompt.no,
+          prompt_block: prompt.block,
+          answer_excerpt: trialState.last_answer_excerpt,
+        });
+        renderTrialSummary();
+      }
+
+      function markTrialResult(score) {
+        if (!trialState.started) throw new Error("Start Trial first.");
+        const prompt = getTrialPrompt();
+        if (!prompt) throw new Error("Current trial prompt not found.");
+        const notes = el("trialNotes").value.trim();
+        const reasonCode = score === 0 ? el("trialFailReason").value : "";
+        if (score === 0 && !reasonCode) {
+          throw new Error("Fail reason code required for score 0.");
+        }
+        trialState.results[String(prompt.no)] = {
+          prompt_no: prompt.no,
+          block: prompt.block,
+          prompt_text: prompt.text,
+          answer_excerpt: trialAnswerExcerpt(),
+          score,
+          reason_code: reasonCode || "",
+          notes,
+          marked_at: new Date().toISOString(),
+        };
+        renderTrialSummary();
+        setRaw({
+          status: "trial_scored",
+          prompt_no: prompt.no,
+          score,
+          reason_code: reasonCode || null,
+        });
+      }
+
+      function nextTrialPrompt() {
+        const current = trialState.current_no;
+        const next = Math.min(current + 1, TRIAL_PROMPTS.length);
+        setCurrentTrialPrompt(next);
+        renderTrialSummary();
+      }
+
+      async function captureTrialEndBaseline() {
+        if (!trialState.started) throw new Error("Start Trial first.");
+        const baseline = await captureTrialBaseline("end");
+        trialState.completed_at = new Date().toISOString();
+        setRaw({
+          status: "trial_end_baseline_captured",
+          completed_at: trialState.completed_at,
+          fallback_rate: baseline.status?.telemetry?.fallback_rate,
+        });
+        renderTrialSummary();
+      }
+
+      function trialDiagnosis(reasonCode) {
+        const map = {
+          OFF_TOPIC: "Answer prompt ke intent se drift hua.",
+          GENERIC: "Answer overly template/generic tha.",
+          FACT_ERROR: "Factual mistake ya incorrect claim detect hua.",
+          IGNORED_CONSTRAINT: "Prompt constraints follow nahi hue.",
+          LOW_ACTIONABILITY: "Useful actionable guidance missing thi.",
+          FORMAT_FAIL: "Expected answer format follow nahi hua.",
+        };
+        return map[reasonCode] || "No diagnosis note.";
+      }
+
+      function buildTrialScoringSheetText() {
+        const lines = [
+          "prompt_no | prompt_text | answer_excerpt | score(0/1) | reason_code | notes",
+        ];
+        for (const prompt of TRIAL_PROMPTS) {
+          const result = trialResultFor(prompt.no) || {};
+          const answer = String(result.answer_excerpt || "").replaceAll("\n", " ").replaceAll("|", "/");
+          const notes = String(result.notes || "").replaceAll("\n", " ").replaceAll("|", "/");
+          lines.push(
+            `${prompt.no} | ${prompt.text} | ${answer} | ${result.score ?? ""} | ${result.reason_code ?? ""} | ${notes}`,
+          );
+        }
+        return lines.join("\n");
+      }
+
+      function buildTrialReportText() {
+        const scores = computeTrialScores();
+        const verdict = trialVerdict(scores);
+        const failed = Object.values(trialState.results)
+          .filter((item) => item.score === 0)
+          .sort((a, b) => Number(a.prompt_no) - Number(b.prompt_no));
+        const reasonDistribution = {};
+        for (const item of failed) {
+          const key = item.reason_code || "UNKNOWN";
+          reasonDistribution[key] = (reasonDistribution[key] || 0) + 1;
+        }
+        const top5Failed = failed.slice(0, 5);
+        const lines = [
+          "Llama Trial Evaluation Report",
+          `GeneratedAt: ${new Date().toISOString()}`,
+          `TrialUser: ${trialUserId()}`,
+          "",
+          "[RUNTIME SNAPSHOT - START]",
+          `captured_at=${trialState.baseline_start?.captured_at ?? "n/a"}`,
+          `backend_configured=${trialState.baseline_start?.runtime?.model_backend_configured ?? "unknown"}`,
+          `backend_effective=${trialState.baseline_start?.runtime?.model_backend_effective ?? "unknown"}`,
+          `judge_enabled=${String(trialState.baseline_start?.runtime?.response_match_model_enabled ?? "unknown")}`,
+          `fallback_rate=${trialState.baseline_start?.status?.telemetry?.fallback_rate ?? "unknown"}`,
+          "",
+          "[RUNTIME SNAPSHOT - END]",
+          `captured_at=${trialState.baseline_end?.captured_at ?? "n/a"}`,
+          `backend_configured=${trialState.baseline_end?.runtime?.model_backend_configured ?? "unknown"}`,
+          `backend_effective=${trialState.baseline_end?.runtime?.model_backend_effective ?? "unknown"}`,
+          `judge_enabled=${String(trialState.baseline_end?.runtime?.response_match_model_enabled ?? "unknown")}`,
+          `fallback_rate=${trialState.baseline_end?.status?.telemetry?.fallback_rate ?? "unknown"}`,
+          "",
+          "[SCORE SUMMARY]",
+          `global=${scores.passes}/60 (${((scores.passes / 60) * 100).toFixed(1)}%)`,
+          `block_A=${scores.byBlock.A.pass}/${TRIAL_BLOCK_TOTALS.A}`,
+          `block_B=${scores.byBlock.B.pass}/${TRIAL_BLOCK_TOTALS.B}`,
+          `block_C=${scores.byBlock.C.pass}/${TRIAL_BLOCK_TOTALS.C}`,
+          `block_D=${scores.byBlock.D.pass}/${TRIAL_BLOCK_TOTALS.D}`,
+          `block_E=${scores.byBlock.E.pass}/${TRIAL_BLOCK_TOTALS.E}`,
+          `technical_B_plus_C=${scores.technicalPass}/30`,
+          `hard_fail_flags=${scores.hardFails.length ? scores.hardFails.join(",") : "none"}`,
+          "",
+          "[FAILURE REASON DISTRIBUTION]",
+        ];
+        if (!failed.length) {
+          lines.push("none");
+        } else {
+          Object.keys(reasonDistribution)
+            .sort()
+            .forEach((key) => {
+              lines.push(`${key}=${reasonDistribution[key]}`);
+            });
+        }
+        lines.push("");
+        lines.push("[TOP 5 FAILED PROMPTS WITH DIAGNOSIS]");
+        if (!top5Failed.length) {
+          lines.push("none");
+        } else {
+          for (const item of top5Failed) {
+            lines.push(
+              `- #${item.prompt_no} reason=${item.reason_code} diagnosis=${trialDiagnosis(item.reason_code)} excerpt=${String(item.answer_excerpt || "").slice(0, 120)}`,
+            );
+          }
+        }
+        lines.push("");
+        lines.push("[VERDICT]");
+        lines.push(verdict);
+        return lines.join("\n");
+      }
+
+      function resetTrial() {
+        trialState.started = false;
+        trialState.started_at = "";
+        trialState.completed_at = "";
+        trialState.current_no = 1;
+        trialState.last_answer_excerpt = "";
+        trialState.results = {};
+        trialState.baseline_start = null;
+        trialState.baseline_end = null;
+        el("trialFailReason").value = "";
+        el("trialNotes").value = "";
+        setCurrentTrialPrompt(1);
+        renderTrialSummary();
+      }
+
+      function asState(value) {
+        const lowered = String(value).toLowerCase();
+        if (["ok", "true", "1", "ready"].includes(lowered)) return "state-ok";
+        if (["degraded", "warning"].includes(lowered)) return "state-warn";
+        return "state-bad";
+      }
+
+      function renderStats(containerId, items) {
+        const root = el(containerId);
+        root.innerHTML = "";
+        items.forEach(([k, v]) => {
+          const box = document.createElement("div");
+          box.className = "kv";
+          const cls = asState(v);
+          box.innerHTML = `<div class="k">${k}</div><div class="v ${cls}">${v}</div>`;
+          root.appendChild(box);
+        });
+      }
+
+      async function api(path, options = {}) {
+        const res = await fetch(`${getBaseUrl()}${path}`, {
+          method: options.method || "GET",
+          headers: buildHeaders(),
+          body: options.body ? JSON.stringify(options.body) : undefined,
+        });
+        const text = await res.text();
+        let parsed = text;
+        try {
+          parsed = text ? JSON.parse(text) : {};
+        } catch (_) {}
+        if (!res.ok) {
+          setRaw(parsed);
+          throw new Error(`HTTP ${res.status}`);
+        }
+        return parsed;
+      }
+
+      async function sendChatMessage({
+        inputText,
+        context,
+        userId,
+        writeRaw = true,
+      }) {
+        const payload = {
+          input_text: inputText,
+          user_id: userId,
+          context,
+        };
+        addChatEntry("user", inputText, userId);
+        const data = await api("/v1/chat/reason", {
+          method: "POST",
+          body: payload,
+        });
+        const answer = String(data.final_answer || "").trim() || "(no final_answer)";
+        addChatEntry("ai", answer, userId);
+        if (writeRaw) setRaw(data);
+        return data;
+      }
+
+      async function loadStatus() {
+        const data = await api("/v1/system/status");
+        snapshot.status = data;
+        snapshot.generated_at = new Date().toISOString();
+        renderStats("statusStats", [
+          ["status", data.status],
+          ["model_ready", data.model_ready],
+          ["memory_ready", data.memory_ready],
+          ["skill_engine_ready", data.skill_engine_ready],
+          ["tool_engine_ready", data.tool_engine_ready],
+          ["telemetry_enabled", data.telemetry_enabled],
+          ["uptime_seconds", data.uptime_seconds],
+          ["memory_entries", data.memory_entries_count],
+        ]);
+        renderCheckup();
+        setRaw(data);
+      }
+
+      async function loadRuntime() {
+        const data = await api("/v1/system/runtime");
+        snapshot.runtime = data;
+        snapshot.generated_at = new Date().toISOString();
+        renderStats("runtimeStats", [
+          ["reasoning_mode", data.reasoning_mode],
+          ["backend_configured", data.model_backend_configured],
+          ["backend_effective", data.model_backend_effective],
+          ["model_ready", data.model_ready],
+          ["judge_enabled", data.response_match_model_enabled],
+          ["judge_mode", data.response_match_mode],
+          ["reflection", data.reflection_enabled],
+          ["regeneration", data.regeneration_enabled],
+          ["routing", data.model_routing_enabled],
+          ["auth_enabled", data.auth_enabled],
+          ["rate_limit", data.rate_limit_enabled],
+        ]);
+        renderCheckup();
+        setRaw(data);
+      }
+
+      async function loadMemory() {
+        const data = await api("/v1/system/memory");
+        snapshot.memory = data;
+        snapshot.generated_at = new Date().toISOString();
+        renderStats("memoryStats", [
+          ["status", data.status],
+          ["memory_ready", data.memory_ready],
+          ["entries", data.memory_entries_count],
+          ["provider", data.embedding_provider],
+          ["embedding_dim", data.embedding_dim],
+          ["embedding_enabled", data.embedding_enabled],
+          ["database_driver", data.database_driver],
+        ]);
+        renderCheckup();
+        setRaw(data);
+      }
+
+      async function loadSkills() {
+        const userId = el("userId").value.trim();
+        if (!userId) throw new Error("user_id required");
+        const includeInactive = el("includeInactive").value;
+        const limit = Number(el("skillLimit").value || 100);
+        const q = new URLSearchParams({
+          user_id: userId,
+          include_inactive: includeInactive,
+          limit: String(Math.min(Math.max(limit, 1), 500)),
+        });
+        const data = await api(`/v1/system/skills?${q.toString()}`);
+        snapshot.skills = data;
+        snapshot.generated_at = new Date().toISOString();
+        const tbody = el("skillTable");
+        tbody.innerHTML = "";
+        for (const skill of data.skills || []) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `
+            <td title="${skill.skill_id}">${skill.skill_id.slice(0, 8)}...</td>
+            <td>${skill.trigger_type}: ${skill.trigger_text}</td>
+            <td>${skill.tool_name}</td>
+            <td>${skill.active}</td>
+            <td>${skill.correction_count}</td>
+            <td><button class="danger" data-id="${skill.skill_id}" style="padding:6px 9px;font-size:12px">Delete</button></td>
+          `;
+          tbody.appendChild(tr);
+        }
+        tbody.querySelectorAll("button[data-id]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const id = btn.getAttribute("data-id");
+            await deleteSkill(id);
+          });
+        });
+        renderCheckup();
+        setRaw(data);
+      }
+
+      async function loadAnalyzer() {
+        const data = await api("/v1/system/analyzer?limit=30");
+        snapshot.analyzer = data;
+        snapshot.generated_at = new Date().toISOString();
+        const records = Array.isArray(data.records) ? data.records : [];
+        if (!records.length) {
+          setAnalyzer("No analyzer records yet. Run some requests and click Analyzer again.");
+          setRaw(data);
+          return data;
+        }
+        const lines = [
+          `AnalyzerEnabled: ${data.analyzer_enabled}`,
+          `AnalyzerRunning: ${data.analyzer_running}`,
+          `FilePath: ${data.file_path}`,
+          `EntryCount: ${data.entry_count}`,
+          "",
+          "Latest Events:",
+        ];
+        for (const item of records.slice(-8)) {
+          const reasons = Array.isArray(item.reasons) ? item.reasons.join(",") : "none";
+          lines.push(
+            `- ${item.timestamp} | status=${item.status} | req=${item.request_count} | mem=${item.memory_entries_count} | reasons=${reasons}`,
+          );
+        }
+        setAnalyzer(lines.join("\n"));
+        setRaw(data);
+        return data;
+      }
+
+      function fillSkillTemplate(templateKey) {
+        if (templateKey === "context") {
+          el("triggerText").value = "flash-scan";
+          el("triggerType").value = "contains";
+          el("toolName").value = "context_digest";
+          el("toolArgs").value = '{"context":"{{context}}"}';
+          el("skillActive").value = "true";
+          return;
+        }
+        if (templateKey === "keywords") {
+          el("triggerText").value = "extract keywords";
+          el("triggerType").value = "contains";
+          el("toolName").value = "keyword_extract";
+          el("toolArgs").value = '{"text":"{{user_input}}","max_keywords":6}';
+          el("skillActive").value = "true";
+          return;
+        }
+        if (templateKey === "priority") {
+          el("triggerText").value = "set priority";
+          el("triggerType").value = "contains";
+          el("toolName").value = "priority_estimator";
+          el("toolArgs").value = '{"goal":"{{user_input}}","priority_hint":"{{context.priority}}"}';
+          el("skillActive").value = "true";
+        }
+      }
+
+      function renderCheckup() {
+        if (!snapshot.status && !snapshot.runtime && !snapshot.memory && !snapshot.skills) {
+          setCheckup("Run Refresh All to load system checkup.");
+          return;
+        }
+
+        const status = snapshot.status || {};
+        const runtime = snapshot.runtime || {};
+        const memory = snapshot.memory || {};
+        const skills = snapshot.skills || {};
+        const analyzer = snapshot.analyzer || {};
+        const issues = [];
+
+        if (status.model_ready === false) issues.push("model_not_ready");
+        if (status.memory_ready === false) issues.push("memory_not_ready");
+        if (status.skill_engine_ready === false) issues.push("skill_engine_not_ready");
+        if (status.tool_engine_ready === false) issues.push("tool_engine_not_ready");
+        if (memory.embedding_enabled === false) issues.push("embeddings_disabled");
+        if (analyzer.analyzer_enabled === false) issues.push("analyzer_disabled");
+        if (analyzer.analyzer_running === false && analyzer.analyzer_enabled === true) issues.push("analyzer_not_running");
+
+        const health = issues.length === 0 ? "OK" : "DEGRADED";
+        const lines = [
+          `Health: ${health}`,
+          `GeneratedAt: ${snapshot.generated_at || new Date().toISOString()}`,
+          `Target: ${getBaseUrl()}/v1/system`,
+          `BackendConfigured: ${runtime.model_backend_configured ?? "unknown"}`,
+          `BackendEffective: ${runtime.model_backend_effective ?? "unknown"}`,
+          `ResponseMatchJudgeEnabled: ${runtime.response_match_model_enabled ?? "unknown"}`,
+          `ResponseMatchMode: ${runtime.response_match_mode ?? "unknown"}`,
+          `ReasoningMode: ${runtime.reasoning_mode ?? "unknown"}`,
+          `MemoryEntries: ${status.memory_entries_count ?? memory.memory_entries_count ?? "unknown"}`,
+          `Skills: total=${skills.total_count ?? "unknown"}, active=${skills.active_count ?? "unknown"}`,
+          `Analyzer: enabled=${analyzer.analyzer_enabled ?? "unknown"}, running=${analyzer.analyzer_running ?? "unknown"}`,
+          `AuthEnabled: ${runtime.auth_enabled ?? "unknown"}`,
+          `RateLimitEnabled: ${runtime.rate_limit_enabled ?? "unknown"}`,
+          issues.length ? `Issues: ${issues.join(", ")}` : "Issues: none",
+        ];
+        setCheckup(lines.join("\n"));
+      }
+
+      function buildOneTouchReportText() {
+        const status = snapshot.status || {};
+        const runtime = snapshot.runtime || {};
+        const memory = snapshot.memory || {};
+        const skills = snapshot.skills || {};
+        const analyzer = snapshot.analyzer || {};
+        const skillsList = Array.isArray(skills.skills) ? skills.skills : [];
+        const health = status.status || (status.model_ready && status.memory_ready ? "ok" : "degraded");
+
+        const lines = [
+          "Humoniod Dashboard One-Touch Report",
+          `GeneratedAt: ${snapshot.generated_at || new Date().toISOString()}`,
+          `Target: ${getBaseUrl()}/v1/system`,
+          "",
+          "[CHECKUP]",
+          `health=${health}`,
+          `model_ready=${String(status.model_ready)}`,
+          `memory_ready=${String(status.memory_ready)}`,
+          `skill_engine_ready=${String(status.skill_engine_ready)}`,
+          `tool_engine_ready=${String(status.tool_engine_ready)}`,
+          "",
+          "[RUNTIME]",
+          `reasoning_mode=${runtime.reasoning_mode ?? "unknown"}`,
+          `backend_configured=${runtime.model_backend_configured ?? "unknown"}`,
+          `backend_effective=${runtime.model_backend_effective ?? "unknown"}`,
+          `response_match_model_enabled=${String(runtime.response_match_model_enabled)}`,
+          `response_match_mode=${runtime.response_match_mode ?? "unknown"}`,
+          `reflection_enabled=${String(runtime.reflection_enabled)}`,
+          `regeneration_enabled=${String(runtime.regeneration_enabled)}`,
+          `routing_enabled=${String(runtime.model_routing_enabled)}`,
+          `auth_enabled=${String(runtime.auth_enabled)}`,
+          "",
+          "[MEMORY]",
+          `memory_entries=${memory.memory_entries_count ?? status.memory_entries_count ?? "unknown"}`,
+          `embedding_provider=${memory.embedding_provider ?? runtime.embedding_provider ?? "unknown"}`,
+          `embedding_dim=${memory.embedding_dim ?? runtime.embedding_dim ?? "unknown"}`,
+          `database_driver=${memory.database_driver ?? runtime.database_driver ?? "unknown"}`,
+          "",
+          "[ANALYZER]",
+          `analyzer_enabled=${String(analyzer.analyzer_enabled)}`,
+          `analyzer_running=${String(analyzer.analyzer_running)}`,
+          `analyzer_file=${analyzer.file_path ?? "unknown"}`,
+          `analyzer_entry_count=${analyzer.entry_count ?? "unknown"}`,
+          "",
+          `[SKILLS] total=${skills.total_count ?? skillsList.length ?? 0}, active=${skills.active_count ?? 0}`,
+        ];
+        if (skillsList.length === 0) {
+          lines.push("- none");
+        } else {
+          for (const item of skillsList) {
+            lines.push(
+              `- trigger="${item.trigger_text}" type=${item.trigger_type} tool=${item.tool_name} active=${item.active} corrections=${item.correction_count}`,
+            );
+          }
+        }
+        lines.push("");
+        lines.push("[TEACH FROM DASHBOARD]");
+        lines.push("1) Fill Trigger Text + Tool Name.");
+        lines.push("2) Save Skill.");
+        lines.push("3) Test from chat with same user_id.");
+        lines.push("");
+        lines.push("[CHAT LAB]");
+        lines.push("- Send Chat: manual test");
+        lines.push("- Dummy: Skill Trigger");
+        lines.push("- Dummy: Memory Build");
+        lines.push("- Run Dummy Conversation");
+        return lines.join("\n");
+      }
+
+      async function generateOneTouchReport() {
+        await loadStatus();
+        await loadRuntime();
+        await loadMemory();
+        await loadSkills();
+        await loadAnalyzer();
+        const report = buildOneTouchReportText();
+        setRaw(report);
+        return report;
+      }
+
+      async function copyOneTouchReport() {
+        const report = buildOneTouchReportText();
+        if (!navigator.clipboard || typeof navigator.clipboard.writeText !== "function") {
+          setRaw("Clipboard not available. Report is shown below.\n\n" + report);
+          return;
+        }
+        await navigator.clipboard.writeText(report);
+        setRaw("One-Touch report copied to clipboard.\n\n" + report);
+      }
+
+      async function sendChatFromForm() {
+        const inputText = el("chatInput").value.trim();
+        if (!inputText) throw new Error("Chat input required");
+        const context = parseChatContext();
+        const userId = getChatUserId();
+        const data = await sendChatMessage({
+          inputText,
+          context,
+          userId,
+        });
+        await loadMemory();
+        return data;
+      }
+
+      async function runDummySkillTrigger() {
+        const userId = getChatUserId();
+        const context = {
+          region: "us",
+          team: "platform",
+          priority: "high",
+          source: "dashboard-dummy",
+        };
+        const data = await sendChatMessage({
+          inputText: "please flash-scan this request",
+          context,
+          userId,
+        });
+        await loadMemory();
+        return data;
+      }
+
+      async function runDummyMemoryBuild() {
+        const userId = getChatUserId();
+        const steps = [
+          {
+            inputText: "Design retry strategy for payment gateway failures.",
+            context: { domain: "payments", priority: "high", source: "dashboard-dummy" },
+          },
+          {
+            inputText: "Refine strategy with circuit breaker and timeout budget.",
+            context: { domain: "payments", priority: "high", source: "dashboard-dummy" },
+          },
+          {
+            inputText: "wrong use exponential backoff with jitter and cap retries at 5.",
+            context: { domain: "payments", priority: "high", source: "dashboard-dummy" },
+          },
+        ];
+        for (const step of steps) {
+          await sendChatMessage({
+            inputText: step.inputText,
+            context: step.context,
+            userId,
+            writeRaw: false,
+          });
+        }
+        setRaw({
+          status: "ok",
+          message: "Dummy memory build completed.",
+          user_id: userId,
+          steps: steps.length,
+        });
+        await loadMemory();
+      }
+
+      async function runDummyConversation() {
+        await runDummyMemoryBuild();
+        await runDummySkillTrigger();
+      }
+
+      function clearChatHistory() {
+        chatHistory.length = 0;
+        renderChatHistory();
+        setRaw("Chat history cleared.");
+      }
+
+      async function saveSkill() {
+        const userId = el("userId").value.trim();
+        const triggerText = el("triggerText").value.trim();
+        const triggerType = el("triggerType").value;
+        const toolName = el("toolName").value.trim();
+        const active = el("skillActive").value === "true";
+
+        let toolArguments = null;
+        const rawArgs = el("toolArgs").value.trim();
+        if (rawArgs) {
+          try {
+            toolArguments = JSON.parse(rawArgs);
+          } catch {
+            throw new Error("Tool arguments JSON invalid");
+          }
+        }
+
+        const payload = {
+          user_id: userId,
+          trigger_text: triggerText,
+          trigger_type: triggerType,
+          tool_name: toolName,
+          tool_arguments: toolArguments,
+          active,
+        };
+        const data = await api("/v1/system/skill", { method: "POST", body: payload });
+        setRaw(data);
+        await loadSkills();
+      }
+
+      async function deleteSkill(skillId) {
+        const userId = el("userId").value.trim();
+        const q = new URLSearchParams();
+        if (userId) q.set("user_id", userId);
+        const data = await api(`/v1/system/skill/${encodeURIComponent(skillId)}?${q.toString()}`, {
+          method: "DELETE",
+        });
+        setRaw(data);
+        await loadSkills();
+      }
+
+      function bind() {
+        el("btnStatus").addEventListener("click", () => loadStatus().catch((e) => setRaw(e.message)));
+        el("btnRuntime").addEventListener("click", () => loadRuntime().catch((e) => setRaw(e.message)));
+        el("btnMemory").addEventListener("click", () => loadMemory().catch((e) => setRaw(e.message)));
+        el("btnSkills").addEventListener("click", () => loadSkills().catch((e) => setRaw(e.message)));
+        el("btnAnalyzer").addEventListener("click", () => loadAnalyzer().catch((e) => setRaw(e.message)));
+        el("btnCheckup").addEventListener("click", () => {
+          renderCheckup();
+          setRaw(checkupPanel.textContent);
+        });
+        el("btnOneTouch").addEventListener("click", () => generateOneTouchReport().catch((e) => setRaw(e.message)));
+        el("btnCopyReport").addEventListener("click", () => copyOneTouchReport().catch((e) => setRaw(e.message)));
+        el("btnSendChat").addEventListener("click", () => sendChatFromForm().catch((e) => setRaw(e.message)));
+        el("btnDummySkill").addEventListener("click", () => runDummySkillTrigger().catch((e) => setRaw(e.message)));
+        el("btnDummyMemory").addEventListener("click", () => runDummyMemoryBuild().catch((e) => setRaw(e.message)));
+        el("btnDummyConversation").addEventListener("click", () => runDummyConversation().catch((e) => setRaw(e.message)));
+        el("btnClearChat").addEventListener("click", () => clearChatHistory());
+        el("btnTrialStart").addEventListener("click", () => startTrial().catch((e) => setRaw(e.message)));
+        el("btnTrialSend").addEventListener("click", () => sendCurrentTrialPrompt().catch((e) => setRaw(e.message)));
+        el("btnTrialPass").addEventListener("click", () => {
+          try {
+            markTrialResult(1);
+          } catch (e) {
+            setRaw(String(e));
+          }
+        });
+        el("btnTrialFail").addEventListener("click", () => {
+          try {
+            markTrialResult(0);
+          } catch (e) {
+            setRaw(String(e));
+          }
+        });
+        el("btnTrialNext").addEventListener("click", () => nextTrialPrompt());
+        el("btnTrialEndBaseline").addEventListener("click", () => captureTrialEndBaseline().catch((e) => setRaw(e.message)));
+        el("btnTrialReport").addEventListener("click", () => {
+          try {
+            const report = buildTrialReportText();
+            setRaw(report);
+          } catch (e) {
+            setRaw(String(e));
+          }
+        });
+        el("btnTrialSheet").addEventListener("click", () => {
+          try {
+            const sheet = buildTrialScoringSheetText();
+            setRaw(sheet);
+          } catch (e) {
+            setRaw(String(e));
+          }
+        });
+        el("btnTrialReset").addEventListener("click", () => resetTrial());
+        el("btnSaveSkill").addEventListener("click", () => saveSkill().catch((e) => setRaw(e.message)));
+        el("btnTplContext").addEventListener("click", () => fillSkillTemplate("context"));
+        el("btnTplKeywords").addEventListener("click", () => fillSkillTemplate("keywords"));
+        el("btnTplPriority").addEventListener("click", () => fillSkillTemplate("priority"));
+        el("btnResetForm").addEventListener("click", () => {
+          el("triggerText").value = "";
+          el("toolName").value = "context_digest";
+          el("toolArgs").value = "";
+          el("triggerType").value = "contains";
+          el("skillActive").value = "true";
+        });
+        el("btnAll").addEventListener("click", async () => {
+          try {
+            await loadStatus();
+            await loadRuntime();
+            await loadMemory();
+            await loadSkills();
+            await loadAnalyzer();
+          } catch (e) {
+            setRaw(String(e));
+          }
+        });
+      }
+
+      function initDefaults() {
+        el("baseUrl").value = window.location.origin;
+        el("targetLabel").textContent = `${window.location.origin}/v1/system`;
+        el("chatContext").value = '{"region":"us","team":"platform","priority":"high"}';
+        applyTrialDefaults();
+        setCurrentTrialPrompt(1);
+        renderTrialSummary();
+        setRaw("Ready. Enter auth value and click Refresh All.");
+        setCheckup("Run Refresh All to load system checkup.");
+        setAnalyzer("Refresh All chalao. Analyzer delta events yahin dikhte rahenge.");
+        setTrial("Trial ready. Click Start Trial after setting local_llama runtime.");
+        renderChatHistory();
+      }
+
+      bind();
+      initDefaults();
+    </script>
+  </body>
+</html>
