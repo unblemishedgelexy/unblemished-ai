@@ -384,6 +384,11 @@ powershell -ExecutionPolicy Bypass -File scripts/team_train_5_routes.ps1 `
   -MonitorDelaySeconds 20
 ```
 
+Note:
+- Script runs preflight checks on `/v1/system/status` and `/v1/system/runtime`.
+- If server is `degraded` or memory/skill engines are not ready, it exits early.
+- To intentionally bypass this safety, add `-ForceStart`.
+
 If auth is enabled:
 
 ```powershell

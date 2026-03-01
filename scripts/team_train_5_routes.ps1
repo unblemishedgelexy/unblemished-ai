@@ -7,7 +7,8 @@ param(
   [string]$AuthHeader = "",
   [string]$AuthValue = "",
   [string]$OutDir = "data/daily_updates",
-  [switch]$NoNewWindows
+  [switch]$NoNewWindows,
+  [switch]$ForceStart
 )
 
 Set-StrictMode -Version Latest
@@ -24,10 +25,79 @@ function Ensure-Directory {
   }
 }
 
+function Build-Headers {
+  $headers = @{}
+  if ($AuthHeader -and $AuthValue) {
+    $headers[$AuthHeader] = $AuthValue
+  }
+  return $headers
+}
+
+function Invoke-ApiGetSafe {
+  param(
+    [string]$PathValue,
+    [hashtable]$Headers
+  )
+  $uri = "{0}{1}" -f $BaseUrl.TrimEnd("/"), $PathValue
+  try {
+    $data = Invoke-RestMethod -Method GET -Uri $uri -Headers $Headers -TimeoutSec 30
+    return @{ ok = $true; data = $data; error = "" }
+  }
+  catch {
+    return @{ ok = $false; data = $null; error = $_.Exception.Message }
+  }
+}
+
+function Get-Optional {
+  param(
+    [object]$ObjectValue,
+    [string]$PropertyName,
+    [object]$DefaultValue = $null
+  )
+  if ($null -eq $ObjectValue) { return $DefaultValue }
+  if ($ObjectValue -is [System.Collections.IDictionary]) {
+    if ($ObjectValue.Contains($PropertyName)) {
+      $value = $ObjectValue[$PropertyName]
+      if ($null -eq $value) { return $DefaultValue }
+      return $value
+    }
+    return $DefaultValue
+  }
+  $prop = $ObjectValue.PSObject.Properties[$PropertyName]
+  if ($null -eq $prop -or $null -eq $prop.Value) { return $DefaultValue }
+  return $prop.Value
+}
+
 Ensure-Directory -PathValue $OutDir
 $runId = (Get-Date).ToUniversalTime().ToString("yyyyMMdd_HHmmss")
 $runDir = Join-Path $OutDir ("team_train_{0}" -f $runId)
 Ensure-Directory -PathValue $runDir
+
+$headers = Build-Headers
+$statusCheck = Invoke-ApiGetSafe -PathValue "/v1/system/status" -Headers $headers
+$runtimeCheck = Invoke-ApiGetSafe -PathValue "/v1/system/runtime" -Headers $headers
+if (-not $ForceStart.IsPresent) {
+  if (-not $statusCheck.ok -or -not $runtimeCheck.ok) {
+    Write-Host "Preflight failed: unable to reach status/runtime endpoints."
+    Write-Host ("status_error={0}" -f $statusCheck.error)
+    Write-Host ("runtime_error={0}" -f $runtimeCheck.error)
+    Write-Host "Use -ForceStart only if you intentionally want to proceed."
+    exit 1
+  }
+  $statusValue = [string](Get-Optional -ObjectValue $statusCheck.data -PropertyName "status" -DefaultValue "unknown")
+  $memoryReady = (Get-Optional -ObjectValue $statusCheck.data -PropertyName "memory_ready" -DefaultValue $false) -eq $true
+  $skillReady = (Get-Optional -ObjectValue $statusCheck.data -PropertyName "skill_engine_ready" -DefaultValue $false) -eq $true
+  $effectiveBackend = [string](Get-Optional -ObjectValue $runtimeCheck.data -PropertyName "model_backend_effective" -DefaultValue "unknown")
+  if ($statusValue -ne "ok" -or -not $memoryReady -or -not $skillReady) {
+    Write-Host "Preflight blocked: server is not fully ready for team training."
+    Write-Host ("status={0}" -f $statusValue)
+    Write-Host ("memory_ready={0}" -f $memoryReady)
+    Write-Host ("skill_engine_ready={0}" -f $skillReady)
+    Write-Host ("backend_effective={0}" -f $effectiveBackend)
+    Write-Host "Fix server health first, or pass -ForceStart to bypass."
+    exit 1
+  }
+}
 
 $stopFlagPath = Join-Path $runDir "STOP.flag"
 $workerScriptPath = Join-Path $PSScriptRoot "team_train_worker.ps1"
