@@ -256,6 +256,24 @@ git push -u origin main
 .\scripts\start_local_llama_final.ps1
 ```
 
+### Offline Postgres launch (local DB + local app)
+
+```powershell
+.\scripts\start_offline_postgres.ps1 `
+  -PostgresHost 127.0.0.1 `
+  -PostgresPort 5432 `
+  -PostgresUser postgres `
+  -PostgresPassword postgres `
+  -PostgresDatabase humoniod_ai `
+  -ModelBackend heuristic
+```
+
+If you want local llama instead of heuristic:
+
+```powershell
+.\scripts\start_offline_postgres.ps1 -ModelBackend local_llama -LocalModelPath "D:\kanchana-ai\ai-model\models\Llama-3.2-3B-Instruct-Q4_K_M.gguf"
+```
+
 ### Verify runtime
 
 ```powershell
