@@ -366,6 +366,39 @@ Output files:
 - `data/daily_updates/online_brain_train_<timestamp>.jsonl`
 - `data/daily_updates/online_brain_train_summary_<timestamp>.txt`
 
+### 5-Route Team Training (parallel workers)
+
+Launch 5 workers in parallel (recommended: separate terminals) with different roles:
+- `chat_general`
+- `chat_technical`
+- `chat_companion`
+- `status_runtime` (health guard)
+- `memory_skills`
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/team_train_5_routes.ps1 `
+  -BaseUrl https://unblemished-ai.onrender.com `
+  -UserId team-train-user `
+  -DurationMinutes 45 `
+  -ChatDelaySeconds 12 `
+  -MonitorDelaySeconds 20
+```
+
+If auth is enabled:
+
+```powershell
+  -AuthHeader x-api-key -AuthValue <YOUR_API_KEY>
+```
+
+Single worker debug:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/team_train_worker.ps1 `
+  -BaseUrl https://unblemished-ai.onrender.com `
+  -Role chat_general `
+  -RunOnce
+```
+
 ### Any-Server Easy Push/Deploy (Linux/AWS)
 
 Project now includes containerized deploy:
