@@ -348,8 +348,11 @@ Runs repeated chat rounds against a live URL, records answers, and auto-stops on
 powershell -ExecutionPolicy Bypass -File scripts/online_brain_trainer.ps1 `
   -BaseUrl https://unblemished-ai.onrender.com `
   -UserId online-train-user `
-  -MaxRounds 200 `
+  -MaxRounds 300 `
   -DelaySeconds 2 `
+  -TargetPassRate 0.8 `
+  -RollingWindow 20 `
+  -MinRoundsPerPool 20 `
   -StopOnDegraded
 ```
 

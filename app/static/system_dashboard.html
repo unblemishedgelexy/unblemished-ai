@@ -1159,6 +1159,23 @@
         });
       }
 
+      function computeMemoryStatusPercent(status, memory) {
+        const readyValue = memory.memory_ready ?? status.memory_ready ?? false;
+        const ready = readyValue === true;
+        const rawEntries = Number(memory.memory_entries_count ?? status.memory_entries_count ?? 0);
+        const entries = Number.isFinite(rawEntries) && rawEntries > 0 ? rawEntries : 0;
+        const embeddingEnabled = (memory.embedding_enabled ?? true) === true;
+
+        // Simple health score:
+        // - readiness: 70%
+        // - memory depth (up to 30 entries): 30%
+        let score = 0;
+        if (ready) score += 70;
+        score += Math.min(entries, 30);
+        if (!embeddingEnabled) score = Math.min(score, 70);
+        return Math.max(0, Math.min(100, Math.round(score)));
+      }
+
       async function api(path, options = {}) {
         const res = await fetch(`${getBaseUrl()}${path}`, {
           method: options.method || "GET",
@@ -1242,9 +1259,11 @@
         const data = await api("/v1/system/memory");
         snapshot.memory = data;
         snapshot.generated_at = new Date().toISOString();
+        const memoryPct = computeMemoryStatusPercent(snapshot.status || {}, data);
         renderStats("memoryStats", [
           ["status", data.status],
           ["memory_ready", data.memory_ready],
+          ["memory_status_pct", `${memoryPct}%`],
           ["entries", data.memory_entries_count],
           ["provider", data.embedding_provider],
           ["embedding_dim", data.embedding_dim],
@@ -1358,6 +1377,7 @@
         const memory = snapshot.memory || {};
         const skills = snapshot.skills || {};
         const analyzer = snapshot.analyzer || {};
+        const memoryPct = computeMemoryStatusPercent(status, memory);
         const issues = [];
 
         if (status.model_ready === false) issues.push("model_not_ready");
@@ -1379,6 +1399,7 @@
           `ResponseMatchMode: ${runtime.response_match_mode ?? "unknown"}`,
           `ReasoningMode: ${runtime.reasoning_mode ?? "unknown"}`,
           `MemoryEntries: ${status.memory_entries_count ?? memory.memory_entries_count ?? "unknown"}`,
+          `MemoryStatusPct: ${memoryPct}%`,
           `Skills: total=${skills.total_count ?? "unknown"}, active=${skills.active_count ?? "unknown"}`,
           `Analyzer: enabled=${analyzer.analyzer_enabled ?? "unknown"}, running=${analyzer.analyzer_running ?? "unknown"}`,
           `AuthEnabled: ${runtime.auth_enabled ?? "unknown"}`,
@@ -1395,6 +1416,7 @@
         const skills = snapshot.skills || {};
         const analyzer = snapshot.analyzer || {};
         const skillsList = Array.isArray(skills.skills) ? skills.skills : [];
+        const memoryPct = computeMemoryStatusPercent(status, memory);
         const health = status.status || (status.model_ready && status.memory_ready ? "ok" : "degraded");
 
         const lines = [
@@ -1422,6 +1444,7 @@
           "",
           "[MEMORY]",
           `memory_entries=${memory.memory_entries_count ?? status.memory_entries_count ?? "unknown"}`,
+          `memory_status_pct=${memoryPct}%`,
           `embedding_provider=${memory.embedding_provider ?? runtime.embedding_provider ?? "unknown"}`,
           `embedding_dim=${memory.embedding_dim ?? runtime.embedding_dim ?? "unknown"}`,
           `database_driver=${memory.database_driver ?? runtime.database_driver ?? "unknown"}`,
