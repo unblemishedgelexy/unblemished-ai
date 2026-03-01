@@ -317,6 +317,52 @@ Remove startup task:
 powershell -ExecutionPolicy Bypass -File scripts/uninstall_server_autopilot_task.ps1
 ```
 
+### Full-Day Update Runner (progress snapshots + short report)
+
+Run a full-day monitor that captures runtime/status/memory/skills/analyzer and writes
+change-only JSONL snapshots with a short summary at the end:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/full_day_update_runner.ps1 `
+  -BaseUrl http://127.0.0.1:8000 `
+  -UserId dashboard-user `
+  -DurationHours 12 `
+  -PollMinutes 15
+```
+
+Output files:
+- `data/daily_updates/full_day_update_<timestamp>.jsonl`
+- `data/daily_updates/full_day_summary_<timestamp>.txt`
+
+Quick test:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/full_day_update_runner.ps1 -RunOnce
+```
+
+### Online Brain Trainer (LLM-assisted repeated training requests)
+
+Runs repeated chat rounds against a live URL, records answers, and auto-stops on degraded health or repeated errors:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/online_brain_trainer.ps1 `
+  -BaseUrl https://unblemished-ai.onrender.com `
+  -UserId online-train-user `
+  -MaxRounds 200 `
+  -DelaySeconds 2 `
+  -StopOnDegraded
+```
+
+Optional auth:
+
+```powershell
+  -AuthHeader x-api-key -AuthValue <YOUR_API_KEY>
+```
+
+Output files:
+- `data/daily_updates/online_brain_train_<timestamp>.jsonl`
+- `data/daily_updates/online_brain_train_summary_<timestamp>.txt`
+
 ### Any-Server Easy Push/Deploy (Linux/AWS)
 
 Project now includes containerized deploy:

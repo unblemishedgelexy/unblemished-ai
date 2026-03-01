@@ -20,6 +20,7 @@ data/*.db
 data/*.log
 data/*.jsonl
 data/*.json
+data/daily_updates/
 dist/
 
 # OS/editor

@@ -94,12 +94,22 @@ def _build_summary(
     context_pairs = ", ".join(f"{key}={value}" for key, value in sorted(user_context.items()))
     context_pairs = context_pairs or "none"
     memory_refs = ", ".join(item["memory_id"] for item in context_used) or "none"
+    compact_input = _compact_user_input(user_input)
     compact_answer = _compact_answer(final_answer)
+    intent_type = _classify_intent_type(compact_input)
+    extracted_goal = _extract_goal_phrase(compact_input)
+    extracted_constraints = _extract_constraints(compact_input, context_pairs)
+    extracted_preferences = _extract_preferences(compact_input, context_pairs)
 
     return (
-        f"UserInput: {user_input}\n"
+        "MemoryType: turn_summary\n"
+        f"IntentType: {intent_type}\n"
+        f"UserInput: {compact_input}\n"
+        f"UserGoal: {extracted_goal}\n"
+        f"UserConstraints: {extracted_constraints}\n"
+        f"UserPreferences: {extracted_preferences}\n"
         f"UserContext: {context_pairs}\n"
-        f"AssistantAnswer: {compact_answer}\n"
+        f"AssistantCommitment: {compact_answer}\n"
         f"ReferencedMemories: {memory_refs}"
     )
 
@@ -108,7 +118,7 @@ def _build_long_term_summary(recent_turns: list[dict[str, Any]]) -> str | None:
     if not recent_turns:
         return None
 
-    fact_lines: list[str] = []
+    fact_lines: list[tuple[float, str]] = []
     seen_fingerprints: set[str] = set()
     for turn in recent_turns:
         user_input = _compact_text(str(turn.get("user_input", "")))
@@ -128,11 +138,16 @@ def _build_long_term_summary(recent_turns: list[dict[str, Any]]) -> str | None:
         if fingerprint in seen_fingerprints:
             continue
         seen_fingerprints.add(fingerprint)
-        fact_lines.append(fact_line)
-        if len(fact_lines) >= 4:
-            break
+        durability = _durability_score(user_input)
+        fact_lines.append((durability, fact_line))
 
     if not fact_lines:
+        return None
+
+    fact_lines.sort(key=lambda item: item[0], reverse=True)
+    selected_lines = [line for _, line in fact_lines[:5]]
+
+    if not selected_lines:
         return None
 
     return (
@@ -140,7 +155,7 @@ def _build_long_term_summary(recent_turns: list[dict[str, Any]]) -> str | None:
         f"SummaryWindowMessages: {len(recent_turns)}\n"
         f"PromptTemplate: {LONG_TERM_TEMPLATE_NAME}\n"
         "KeyKnowledge:\n"
-        f"{chr(10).join(fact_lines)}"
+        f"{chr(10).join(selected_lines)}"
     )
 
 
@@ -172,11 +187,84 @@ def _compact_answer(text: str) -> str:
         return "none"
 
     # Keep summary memory compact and high-signal.
-    compact = " ".join(cleaned_lines[:2])
+    compact = " ".join(cleaned_lines[:3])
     tokens = compact.split()
-    if len(tokens) > 48:
-        compact = " ".join(tokens[:48])
+    if len(tokens) > 64:
+        compact = " ".join(tokens[:64])
     return compact.strip()
+
+
+def _compact_user_input(text: str) -> str:
+    compact = _compact_text(text)
+    if not compact:
+        return "none"
+    compact = re.sub(r"\s+", " ", compact).strip()
+    compact = re.sub(r"^(please|plz|kindly)\s+", "", compact, flags=re.IGNORECASE)
+    compact = re.sub(r"\b(hey|hi|hello|bhai|bro)\b[:,]?\s*", "", compact, flags=re.IGNORECASE)
+    compact = compact.strip(" -:")
+    if not compact:
+        return "none"
+    return _trim_words(compact, max_words=28)
+
+
+def _classify_intent_type(text: str) -> str:
+    lowered = text.lower()
+    if lowered == "none":
+        return "unknown"
+    if re.search(r"\b(design|build|plan|strategy|architecture|implement)\b", lowered):
+        return "planning"
+    if re.search(r"\b(fix|debug|error|issue|problem|not working|diagnose)\b", lowered):
+        return "troubleshooting"
+    if re.search(r"\b(explain|define|what is|how does|meaning)\b", lowered):
+        return "explanation"
+    if re.search(r"\b(wrong|not that|i meant|instead)\b", lowered):
+        return "correction"
+    return "conversation"
+
+
+def _extract_goal_phrase(text: str) -> str:
+    if not text or text == "none":
+        return "none"
+    lowered = text.lower()
+    patterns = (
+        r"\b(i need to|i want to|i want|need to|goal is to|objective is to)\s+(.+)",
+        r"\b(please|kindly)\s+(.+)",
+        r"\b(design|build|plan|create|explain|summarize|refine)\s+(.+)",
+    )
+    for pattern in patterns:
+        match = re.search(pattern, lowered)
+        if match:
+            phrase = match.group(match.lastindex or 1)
+            return _trim_words(phrase.strip(), max_words=16)
+    return _trim_words(text, max_words=16)
+
+
+def _extract_constraints(user_input: str, context_pairs: str) -> str:
+    lowered = user_input.lower()
+    hits: list[str] = []
+    keywords = ("must", "deadline", "urgent", "priority", "constraint", "limit", "cap", "no", "without", "avoid")
+    for token in keywords:
+        if re.search(rf"\b{re.escape(token)}\b", lowered):
+            hits.append(token)
+    if "priority=" in context_pairs.lower():
+        hits.append("context.priority")
+    if not hits:
+        return "none"
+    return ", ".join(dict.fromkeys(hits))
+
+
+def _extract_preferences(user_input: str, context_pairs: str) -> str:
+    lowered = user_input.lower()
+    hits: list[str] = []
+    markers = ("prefer", "instead", "use", "style", "format", "short", "detailed", "step-by-step")
+    for marker in markers:
+        if marker in lowered:
+            hits.append(marker)
+    if "answer_style=" in context_pairs.lower():
+        hits.append("context.answer_style")
+    if not hits:
+        return "none"
+    return ", ".join(dict.fromkeys(hits))
 
 
 def _compact_text(text: str) -> str:
@@ -200,6 +288,20 @@ def _classify_fact_type(text: str) -> str:
     if re.search(r"\b(urgent|deadline|priority|must|blocked|risk|constraint)\b", lowered):
         return "constraint"
     return "fact"
+
+
+def _durability_score(text: str) -> float:
+    lowered = text.lower()
+    score = 0.25
+    if re.search(r"\b(always|never|prefer|avoid|do not|don't)\b", lowered):
+        score += 0.35
+    if re.search(r"\b(goal|objective|target|want|need|plan|roadmap)\b", lowered):
+        score += 0.25
+    if re.search(r"\b(urgent|deadline|priority|must|blocked|risk|constraint)\b", lowered):
+        score += 0.25
+    if len(lowered.split()) >= 8:
+        score += 0.1
+    return round(min(score, 1.0), 4)
 
 
 def _trim_words(text: str, max_words: int) -> str:
