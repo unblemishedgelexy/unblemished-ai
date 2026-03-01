@@ -275,7 +275,13 @@ class PostgresMemoryRepository:
             if self._initialized:
                 return
             asyncpg = _import_asyncpg()
-            self._pool = await asyncpg.create_pool(dsn=self._dsn, min_size=1, max_size=6)
+            self._pool = await asyncpg.create_pool(
+                dsn=self._dsn,
+                min_size=1,
+                max_size=6,
+                statement_cache_size=0,
+                command_timeout=20,
+            )
             await self._initialize_schema()
             self._initialized = True
             self._logger.info(
@@ -378,7 +384,16 @@ class PostgresMemoryRepository:
             assert self._pool is not None
             await self._pool.fetchval("SELECT 1")
             return True
-        except Exception:
+        except Exception as exc:
+            self._logger.error(
+                "repository.memory.not_ready",
+                trace_id="system",
+                user_id="system",
+                memory_id="n/a",
+                retrieval_count=0,
+                error_type=type(exc).__name__,
+                error_message=str(exc),
+            )
             return False
 
     async def _initialize_schema(self) -> None:
